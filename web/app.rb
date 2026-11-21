@@ -47,19 +47,19 @@ class PlanterApp < Sinatra::Base
 
   get "/api/readings" do
     limit = parse_limit(params["limit"])
-    device = params["device"]
-    rows = if device.nil? || device.empty?
-      database.prepare(
-        "SELECT #{COLUMNS} FROM readings ORDER BY measured_at DESC, id DESC LIMIT ?1"
-      ).bind(limit).rows
-    else
-      halt_json 400, "device must match #{DEVICE_PATTERN.source}" unless device.match?(DEVICE_PATTERN)
-      database.prepare(
-        "SELECT #{COLUMNS} FROM readings WHERE device = ?1 " \
-        "ORDER BY measured_at DESC, id DESC LIMIT ?2"
-      ).bind(device, limit).rows
+    device = params["device"].to_s
+    unless device.empty? || device.match?(DEVICE_PATTERN)
+      halt_json 400, "device must match #{DEVICE_PATTERN.source}"
     end
-    json_response rows.map { |row| serialize(row) }
+    # D1 builds the JSON array, so up to 2000 rows cost the Worker little CPU.
+    body = database.prepare(
+      "SELECT json_group_array(json_object('device', device, 'moisture', moisture, " \
+      "'volt', volt, 'raw', raw, 'status', status, 'measured_at', measured_at)) AS body " \
+      "FROM (SELECT #{COLUMNS} FROM readings WHERE ?1 = '' OR device = ?1 " \
+      "ORDER BY measured_at DESC, id DESC LIMIT ?2)"
+    ).bind(device, limit).first(:body)
+    content_type "application/json", charset: "utf-8"
+    body
   end
 
   get "/api/latest" do

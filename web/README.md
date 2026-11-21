@@ -191,6 +191,31 @@ npm run deploy                          # wrangler deploy
   その組み合わせではビルドできません。PicoRuby 4.0.5 ではビルドできます。
 - 画面はスマートフォン向けです（幅 360〜430 px で 1 列、左右 16 px、ノッチなどの safe area を避ける）。PC では幅 560 px で中央に表示します。
 
+## Workers Free プランの CPU 時間
+
+Free プランでは、1 リクエストあたりの CPU 時間が 10 ms までです（D1 の応答を待つ時間は含まれません）。
+テンプレートの `createWorker()` はリクエストごとに PicoRuby の VM を作り直すので、それだけで約 20 ms かかります。
+そこで `src/index.js` では、VM を Worker の起動時に 1 回だけ作り（起動時間の上限 1 秒に入る）、
+各リクエストはその VM に渡しています。
+
+- Workers は起動時（グローバルスコープ）の乱数を禁止していますが、Sinatra は読み込み時に
+  `SecureRandom` でセッション用の鍵を作ります。このアプリはセッションを使わないので、
+  起動時のその 1 回だけ 0 のバイト列を返し、リクエストを処理する前に元の関数へ戻しています。
+- `GET /api/readings` は、JSON の配列を D1（SQLite の `json_group_array`）で組み立てます。
+  288 行を Ruby の Hash にしてから JSON にすると、それだけで約 20 ms かかるためです。
+
+手元で測った CPU 時間（Node.js 24 で同じ Wasm とバイトコードを動かし、D1 は中身のある
+インメモリの偽物にして、その処理時間は差し引いたもの。100 回の中央値 / 最大）:
+
+| | リクエストごとに VM | 起動時に VM を 1 回 |
+|---|---|---|
+| 起動（VM の作成） | — | 約 127 ms（起動時間に入る） |
+| `POST /api/readings` | 20.8 / 62 ms | 1.3 / 3.8 ms（起動後の 1 回目は 8.5 ms） |
+| `GET /api/latest` | 18.7 / 26 ms | 0.4 / 1.3 ms |
+| `GET /api/readings`（288 行） | 18.5 / 27 ms | 0.5 / 1.1 ms |
+
+本番の CPU 時間は、公開後に Cloudflare のダッシュボード（Workers の Metrics の CPU Time）で確かめてください。
+
 ## 写真のクレジット
 
 `public/images/gajumaru.jpg` は、Wikimedia Commons の
