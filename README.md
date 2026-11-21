@@ -13,7 +13,7 @@
 
 - Switch Science ISP1807 Dev Board（nRF52840）
 - Lazentra 土壌湿度計 電容量式土壌水分センサー（ABM141）
-- PicoRuby（nRF52840 向けは移植中： https://github.com/ryosk7/picoruby ）
+- R2P2-nRF（nRF52840 で PicoRuby を動かすファームウェア。下の「ファームウェア」を参照）
 
 ## 配線
 
@@ -22,6 +22,22 @@
 | VCC | 3V3 |
 | GND | GND |
 | AO | P0.02（AIN0） |
+
+## ファームウェア（nRF52840）
+
+`firmware/` に、本書で使ったファームウェアのリポジトリを、本書の時点のコミットでサブモジュールとして入れています。
+
+| リポジトリ | 役割 | コミット |
+|---|---|---|
+| [R2P2-nRF](https://github.com/ryosk7/R2P2-nRF) | nRF52840 で R2P2（PicoRuby の shell と irb）を動かすファームウェア。USB 接続、ビルドと書き込みの手順 | `4ae66b6` |
+| [picoruby-nRF](https://github.com/ryosk7/picoruby-nRF) | PicoRuby を nRF52 で動かす土台。起動処理、HAL、nRF5 SDK の設定 | `877f1bb` |
+
+```console
+git clone --recurse-submodules https://github.com/ryosk7/picoruby-smart-planter.git
+```
+
+ビルドと書き込みの手順は、[R2P2-nRF の README](https://github.com/ryosk7/R2P2-nRF) を見てください。
+nRF52840 対応の進み具合は、PicoRuby の issue [#399 PicoRuby porting for nRF52840](https://github.com/picoruby/picoruby/issues/399) のロードマップにまとめています。
 
 ## 使い方
 

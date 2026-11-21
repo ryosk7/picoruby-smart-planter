@@ -1,0 +1,6 @@
+[submodule "firmware/R2P2-nRF"]
+	path = firmware/R2P2-nRF
+	url = https://github.com/ryosk7/R2P2-nRF.git
+[submodule "firmware/picoruby-nRF"]
+	path = firmware/picoruby-nRF
+	url = https://github.com/ryosk7/picoruby-nRF.git
