@@ -67,7 +67,7 @@ nRF52840（PicoRuby）──Thread──▶ Raspberry Pi 5 ──HTTPS POST─�
 ```sh
 curl -X PUT http://127.0.0.1:8787/api/plants/planter-1 \
   -H "Authorization: Bearer $PLANTER_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"nickname":"ぴょんきち","species":"ガジュマル","scientific_name":"Ficus microcarpa","photo_url":"/images/gajumaru.jpg","moisture_min":25,"moisture_max":54}'
+  -d '{"nickname":"ぴょんきち","species":"ガジュマル","scientific_name":"Ficus microcarpa","photo_url":"/images/pyonkichi.jpg","moisture_min":25,"moisture_max":54}'
 ```
 
 ## 実装のしくみ
@@ -216,9 +216,6 @@ Free プランでは、1 リクエストあたりの CPU 時間が 10 ms まで�
 
 本番の CPU 時間は、公開後に Cloudflare のダッシュボード（Workers の Metrics の CPU Time）で確かめてください。
 
-## 写真のクレジット
+## 写真
 
-`public/images/gajumaru.jpg` は、Wikimedia Commons の
-[File:(MHNT) Ficus microcarpa 'Ginseng'.jpg](https://commons.wikimedia.org/wiki/File:(MHNT)_Ficus_microcarpa_%27Ginseng%27.jpg)
-（撮影 Didier Descouens、[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)）を縮小したものです。
-縮小した画像も CC BY-SA 4.0 で提供します。
+`public/images/pyonkichi.jpg` は、著者が撮影したぴょんきち（ガジュマル）の写真です（位置情報などのメタデータは取り除いています）。

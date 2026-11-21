@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS plants (
   nickname TEXT NOT NULL,             -- e.g. ぴょんきち
   species TEXT NOT NULL,              -- plant type shown to people, e.g. ガジュマル
   scientific_name TEXT,               -- e.g. Ficus microcarpa
-  photo_url TEXT,                     -- e.g. /images/gajumaru.jpg (file in public/images)
+  photo_url TEXT,                     -- e.g. /images/pyonkichi.jpg (file in public/images)
   moisture_min INTEGER NOT NULL CHECK (moisture_min BETWEEN 0 AND 100),  -- optimal range start (inclusive)
   moisture_max INTEGER NOT NULL CHECK (moisture_max BETWEEN 0 AND 100),  -- optimal range end (inclusive)
   CHECK (moisture_min <= moisture_max)
