@@ -70,6 +70,41 @@ curl -X PUT http://127.0.0.1:8787/api/plants/planter-1 \
   -d '{"nickname":"ぴょんきち","species":"ガジュマル","scientific_name":"Ficus microcarpa","photo_url":"/images/gajumaru.jpg","moisture_min":25,"moisture_max":54}'
 ```
 
+## 実装のしくみ
+
+### 全体
+
+| 部分 | 使うもの | ファイル |
+|---|---|---|
+| 画面 | Funicular（ブラウザで動く PicoRuby.wasm の SPA フレームワーク） | `public/index.html` |
+| API | picoruby-cloudflare-worker-wasm（Cloudflare Workers で動く PicoRuby）＋ Sinatra | `app.rb` |
+| データ | Cloudflare D1（SQLite） | `schema.sql`、`seed.sql` |
+
+`public/` は Static Assets がそのまま配信し、`/api/*` だけが PicoRuby の Sinatra を動かします（`wrangler.jsonc` の `run_worker_first`）。
+
+### 植物の情報はデータ
+
+植物の種類・写真・ちょうどよい水分量・ニックネームは、プログラムではなく D1 の `plants` テーブルに保存します（`schema.sql`）。
+1 行が 1 つの鉢（センサー）に植えた 1 つの植物で、`device` がセンサーの ID（例：`planter-1`）です。
+最初のデータ（ガジュマルの「ぴょんきち」、ちょうどよい水分量 25〜54%）は `seed.sql` で入れます。
+鉢を増やしたり範囲を変えたりするときは、`PUT /api/plants/:device` を使えば、プログラムを書き換えずに済みます。
+
+### 値を受け取って判定する（`app.rb`）
+
+- `post "/api/readings"`：`authorize!` で Bearer トークンを確かめ、`validate_reading` で値を確かめてから、D1 に保存します。
+- 状態（dry / ok / wet）は `status_for(find_plant(device), moisture)` がサーバー側で決めます。その鉢の植物の範囲より下なら dry、上なら wet、範囲の中なら ok です。植物が登録されていない鉢は、本書 2 章と同じ 30〜59% で判定します。植物の側のボードが送ってくる `status` は使いません。
+- D1 への書き込みは `prepare(sql).bind(...).run` の順に呼びます。SQL の `?1` などに値をあとから当てはめるので、値が SQL として実行される心配がありません。
+- `get "/api/latest"` は、鉢ごとの最新の値に、その鉢の植物の情報（`plant`）を付けて返します。画面はこの 1 回の呼び出しで、写真やニックネームも表示できます。
+- 最後の `Rackup::Handler::CloudflareWorker.run(PlanterApp)` で、Sinatra のアプリを Workers に登録しています。
+
+### 画面（`public/index.html`）
+
+- HTML の中の `<script type="text/ruby">` に Ruby で書いています。ビルドの手順はいりません。
+- `PlanterDashboard`：`Funicular::HTTP.get("/api/latest")` で値を読み、`patch` で状態（state）に入れます。状態が変わると、その部分だけが描き直されます。`JS.global.setTimeout` で 60 秒ごとに読み直します。
+- `DeviceCard`：植物 1 つ分のカードです。写真、ニックネーム、種類と学名、いまの水分量、状態のバッジ、ちょうどよい水分量、24 時間のグラフを、上から縦に並べます。
+- `MoistureChart`：24 時間の水分量の折れ線を Ruby で SVG に組み立てます。色分けには、その植物のちょうどよい水分量を使います（Funicular 0.5.2 は SVG 要素を直接描けないので、画像として表示しています）。
+- スマートフォンで見やすいように縦 1 列で、パソコンでは幅 560px ほどで中央に表示します。
+
 ## 必要なもの
 
 - Ruby 3.2 以上、Node.js（Wrangler が対応する版）
