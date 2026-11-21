@@ -7,6 +7,8 @@
 | ファイル | 内容 | 本書 |
 |---|---|---|
 | `soil_moisture.rb` | 土壌センサーの電圧をADCで読み取り、水分量（%）と植物の状態（dry / ok / wet）を表示する | 第2章 |
+| `app.rb` | 植物の側のボードで動かす。土壌湿度計の値を読み、60 秒ごとに Thread（UDP）で Raspberry Pi 5 に送る（`/home/app.rb` に置く） | 第4章 |
+| `raspberrypi/` | Raspberry Pi 5 の設定（OTBR、RCP、SoilNet、受信サービス）。手順は `raspberrypi/README.md` | 第4章 |
 | `test/index.html` | PicoRuby.wasm で `soil_moisture.rb` を動かす確認ページ（ADCを決まった電圧を返す偽物に置き換える） | — |
 
 ## 使うもの

@@ -1,0 +1,3 @@
+# /etc/default/otbr-agent
+# Replace <SERIAL> with the RCP board's USB serial (see: ls /dev/serial/by-id/).
+OTBR_AGENT_OPTS="-I wpan0 -B wlan0 spinel+hdlc+uart:///dev/serial/by-id/usb-Nordic_Semiconductor_nRF528xx_OpenThread_Device_<SERIAL>-if00?uart-baudrate=115200 trel://wlan0"

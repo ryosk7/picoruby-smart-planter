@@ -1,0 +1,14 @@
+# /etc/systemd/system/soil-receiver.service
+[Unit]
+Description=Soil sensor UDP receiver
+After=otbr-agent.service network-online.target
+
+[Service]
+User=otbr
+# PLANTER_API_URL, PLANTER_TOKEN, PLANTER_DEVICE (see soil-receiver.env.example)
+EnvironmentFile=-/etc/default/soil-receiver
+ExecStart=/usr/bin/python3 /home/otbr/soil_receiver.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
