@@ -12,7 +12,7 @@ nRF52840（PicoRuby）──Thread──▶ Raspberry Pi 5 ──HTTPS POST─�
 | 部分 | 技術 | ファイル |
 |---|---|---|
 | API | PicoRuby + Sinatra on Cloudflare Workers（[picoruby-cloudflare-worker-wasm](https://github.com/udzura/picoruby-cloudflare-worker-wasm)） | `app.rb` |
-| データベース | Cloudflare D1 | `schema.sql` |
+| データベース | Cloudflare D1（測定値 `readings` と植物のプロフィール `plants`） | `schema.sql`, `seed.sql` |
 | 画面 | Funicular（PicoRuby.wasm の SPA フレームワーク）、Static Assets で配信 | `public/index.html` |
 | 送信ツール | CRuby（標準ライブラリだけ） | `tools/post_reading.rb` |
 | ビルド設定 | [picoruby-cloudflare-template](https://github.com/udzura/picoruby-cloudflare-template) | `build_config.rb`, `Rakefile`, `wrangler.jsonc`, `src/index.js` |
@@ -34,14 +34,41 @@ nRF52840（PicoRuby）──Thread──▶ Raspberry Pi 5 ──HTTPS POST─�
 | `moisture` | 整数 | 水分量 0〜100（%） |
 | `volt` | 数値 | センサーの電圧（V、0〜10） |
 | `raw` | 整数 | ADC の値 0〜4095 |
-| `status` | 文字列 | `dry`（30 % 未満）/ `ok`（60 % 未満）/ `wet`。省略すると水分量から決めます |
+| `status` | 文字列 | `dry` / `ok` / `wet`。**サーバーが植物ごとの最適な水分量で判定します**。送られた値は互換のため受け付けますが使いません（形の正しくない値は 400） |
 | `measured_at` | 文字列 | 測定時刻（ISO8601、UTC、`Z` 付き）。省略するとサーバーの現在時刻 |
 
 | メソッド | パス | 内容 |
 |---|---|---|
 | `POST` | `/api/readings` | 測定値を 1 件保存。`Authorization: Bearer <INGEST_TOKEN>` が必要。成功は 201、トークンなし・違いは 401、入力の誤りは 400 |
 | `GET` | `/api/readings?device=...&limit=...` | 新しい順の測定値。`limit` の既定は 288（5 分ごとで 1 日分）、最大 2000 |
-| `GET` | `/api/latest` | 機器ごとの最新の測定値 |
+| `GET` | `/api/latest` | 機器ごとの最新の測定値。各行に植物のプロフィール `plant`（なければ `null`） |
+| `GET` | `/api/plants` | 植物のプロフィールの一覧 |
+| `PUT` | `/api/plants/:device` | プロフィールを作成・更新（`POST /api/readings` と同じトークンが必要） |
+
+### 植物ごとの「ちょうどよい」
+
+鉢（センサー）ごとに、植物のプロフィールを D1 の `plants` テーブルに持ちます。
+
+| 項目 | 内容 |
+|---|---|
+| `device` | センサー／鉢の ID（例 `planter-1`） |
+| `nickname` | ニックネーム（例 ぴょんきち）。40 文字まで |
+| `species` | 植物の種類（例 ガジュマル）。40 文字まで |
+| `scientific_name` | 学名（例 Ficus microcarpa）。省略可 |
+| `photo_url` | 写真。`public/images/` のファイルなら `/images/...`、外部なら `https://...`。省略可 |
+| `moisture_min`, `moisture_max` | 最適な水分量（%、両端を含む）。これより低いと `dry`、高いと `wet` |
+
+プロフィールのない機器は、第 2 章と同じ 30〜59 % を「ちょうどよい」として判定します。
+
+最初のプロフィールは `seed.sql` に入っています（ガジュマルの「ぴょんきち」、25〜54 %）。
+ガジュマルは水やりの間に土が乾くのを好むので、低めの範囲から始めています。
+25〜54 % は出発点です。実際の鉢と土で様子を見ながら調整してください。範囲は `PUT` で変えられます。
+
+```sh
+curl -X PUT http://127.0.0.1:8787/api/plants/planter-1 \
+  -H "Authorization: Bearer $PLANTER_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"nickname":"ぴょんきち","species":"ガジュマル","scientific_name":"Ficus microcarpa","photo_url":"/images/gajumaru.jpg","moisture_min":25,"moisture_max":54}'
+```
 
 ## 必要なもの
 
@@ -65,7 +92,7 @@ bundle exec rake doctor      # PicoRuby・emcc・Node.js を確認
 bundle exec rake             # Wasm と app.rb のバイトコードを generated/ に作る
 
 cp .dev.vars.example .dev.vars   # INGEST_TOKEN を好きな値に書き換える
-npm run db:local                 # ローカルの D1 に schema.sql を適用
+npm run db:local                 # ローカルの D1 に schema.sql と seed.sql を適用
 npm run dev                      # http://localhost:8787/
 ```
 
@@ -84,7 +111,7 @@ curl http://127.0.0.1:8787/api/latest
 curl 'http://127.0.0.1:8787/api/readings?device=planter-1&limit=10'
 ```
 
-ブラウザで <http://localhost:8787/> を開くと、機器ごとの水分量・状態・最終更新時刻と、
+ブラウザ（スマートフォン向けの 1 列表示）で <http://localhost:8787/> を開くと、植物の写真・ニックネーム・種類、水分量・状態・ちょうどよい範囲・最終更新時刻と、
 過去 24 時間のグラフが出ます。画面は 60 秒ごとに `/api/latest` と `/api/readings` を読み直します。
 
 ## Cloudflare に公開する
@@ -97,6 +124,7 @@ npx wrangler d1 create smart-planter
 # 表示された database_id を wrangler.jsonc の d1_databases[0].database_id に書く
 
 npx wrangler d1 execute smart-planter --remote --file schema.sql
+npx wrangler d1 execute smart-planter --remote --file seed.sql
 npx wrangler secret put INGEST_TOKEN    # 長いランダムな値を入力する
 npm run check                           # wrangler deploy --dry-run
 npm run deploy                          # wrangler deploy
@@ -126,3 +154,11 @@ npm run deploy                          # wrangler deploy
 - picoruby-cloudflare-template 0.2.1 の README は PicoRuby `33540f66` を検証対象に挙げていますが、
   既定の worker-wasm 0.10.0 に含まれる mruby-time がそれより新しい mruby の API を使うため、
   その組み合わせではビルドできません。PicoRuby 4.0.5 ではビルドできます。
+- 画面はスマートフォン向けです（幅 360〜430 px で 1 列、左右 16 px、ノッチなどの safe area を避ける）。PC では幅 560 px で中央に表示します。
+
+## 写真のクレジット
+
+`public/images/gajumaru.jpg` は、Wikimedia Commons の
+[File:(MHNT) Ficus microcarpa 'Ginseng'.jpg](https://commons.wikimedia.org/wiki/File:(MHNT)_Ficus_microcarpa_%27Ginseng%27.jpg)
+（撮影 Didier Descouens、[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)）を縮小したものです。
+縮小した画像も CC BY-SA 4.0 で提供します。

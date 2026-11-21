@@ -10,7 +10,8 @@
 #   echo '{"device":"planter-1","moisture":46,"volt":1.9,"raw":2161,"status":"ok"}' |
 #     ruby tools/post_reading.rb
 #
-# Without --status the status is derived from moisture (dry < 30 % <= ok < 60 % <= wet).
+# The server judges status (dry / ok / wet) with the plant profile of the device;
+# a --status given here is sent for compatibility but ignored.
 # measured_at is optional; the server uses the current UTC time when it is absent.
 # Exit status: 0 when stored (201), 1 when the server refused, 2 on usage or network errors.
 
@@ -18,13 +19,6 @@ require "json"
 require "net/http"
 require "optparse"
 require "uri"
-
-def status_for(moisture)
-  if moisture < 30 then "dry"
-  elsif moisture < 60 then "ok"
-  else "wet"
-  end
-end
 
 def fail_usage(message)
   warn "post_reading: #{message}"
@@ -63,9 +57,6 @@ reading =
     fail_usage("missing #{missing.map { |k| "--#{k}" }.join(', ')}") unless missing.empty?
     options
   end
-if reading["status"].nil? && reading["moisture"].is_a?(Integer)
-  reading["status"] = status_for(reading["moisture"])
-end
 
 base = ENV["PLANTER_API_URL"].to_s
 token = ENV["PLANTER_TOKEN"].to_s
