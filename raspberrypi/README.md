@@ -74,7 +74,12 @@ sudo systemctl enable --now soil-receiver
 
 ## 7. 植物の側のボードを起動する
 
-植物の側の ISP1807（R2P2-nRF の Thread 版）の `/home/app.rb` に、リポジトリの `app.rb` を置いて再起動します。
+植物の側の ISP1807（R2P2-nRF の Thread 版）に、リポジトリの `app.rb` を `/home/app.rb` として書き込み、再起動します。
+`DATASET` と `DEST` は、手順 5 で表示された値に書き換えてから書き込みます。
+
+R2P2-nRF の USB ドライブ（`R2P2 NRF52`）は `/home` とは別の領域なので、そこにコピーしても `/home/app.rb` にはなりません。
+起動時に `/home/app.rb` が動いているときは、リセット直後の「Press 's' to skip」で `s` を押すと shell に入れます。
+本書の執筆時は、shell の `irb` から `File.open("/home/app.rb", "w")` で、短く区切った ASCII の文字列を書き込みました。
 
 ## 8. 届いたか確かめる
 
