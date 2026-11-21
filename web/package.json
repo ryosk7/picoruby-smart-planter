@@ -1,0 +1,17 @@
+{
+  "name": "smart-planter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bundle exec rake build",
+    "generate:bindings": "bundle exec rake build",
+    "db:local": "wrangler d1 execute smart-planter --local --file schema.sql",
+    "dev": "wrangler dev",
+    "check": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "jsonc-parser": "3.2.0",
+    "wrangler": "4.125.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "smart-planter",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-22",
+  "build": {
+    "command": "bundle exec rake build",
+    "watch_dir": ["app.rb", "build_config.rb"]
+  },
+  "rules": [
+    { "type": "Data", "globs": ["**/*.bin"], "fallthrough": true }
+  ],
+  // public/ is served by Static Assets without starting PicoRuby;
+  // only /api/* runs the Sinatra app.
+  "assets": {
+    "directory": "./public",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "smart-planter",
+      // Replace with the id printed by `npx wrangler d1 create smart-planter`.
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+  // INGEST_TOKEN is a secret: .dev.vars locally, `wrangler secret put INGEST_TOKEN` remotely.
+}
