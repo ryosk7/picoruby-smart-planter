@@ -1,0 +1,46 @@
+# picoruby-smart-planter
+
+技術書典21で頒布する『PicoRubyでつくる スマートプランター』（内田涼介 / ryosk7）のサンプルコードです。
+
+## ファイル
+
+| ファイル | 内容 | 本書 |
+|---|---|---|
+| `soil_moisture.rb` | 土壌センサーの電圧をADCで読み取り、水分量（%）と植物の状態（dry / ok / wet）を表示する | 第2章 |
+| `test/index.html` | PicoRuby.wasm で `soil_moisture.rb` を動かす確認ページ（ADCを決まった電圧を返す偽物に置き換える） | — |
+
+## 使うもの
+
+- Switch Science ISP1807 Dev Board（nRF52840）
+- Lazentra 土壌湿度計 電容量式土壌水分センサー（ABM141）
+- PicoRuby（nRF52840 向けは移植中： https://github.com/ryosk7/picoruby ）
+
+## 配線
+
+| センサー | ISP1807 Dev Board |
+|---|---|
+| VCC | 3V3 |
+| GND | GND |
+| AO | P0.02（AIN0） |
+
+## 使い方
+
+1. `soil_moisture.rb` をボードの PicoRuby に書き込んで実行します。
+2. `DRY_V` と `WET_V` は例の値です。乾いた土と、水をたっぷり含ませた土にセンサーを挿して `read_voltage` の値を測り、その値に置き換えてください。
+
+## ブラウザで動作を確かめる
+
+ボードがなくても、PicoRuby.wasm で計算と判定の動きを確かめられます。
+リポジトリのルートで HTTP サーバーを起動し、`test/index.html` を開くと、ブラウザの開発者ツールのコンソールに結果が出ます。
+
+```console
+ruby -run -e httpd . -p 8000
+# http://localhost:8000/test/index.html を開く
+```
+
+ADC は、いくつかの電圧を順に返す偽物に置き換えています。
+実機（nRF52840 上の PicoRuby）での読み取りは、ボードとセンサーをつないで確かめてください。
+
+## ライセンス
+
+MIT License
