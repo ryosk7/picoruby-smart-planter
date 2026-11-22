@@ -1,15 +1,18 @@
-# 植物の側の ISP1807 Dev Board（R2P2-nRF の Thread 版）で動かす。
-# /home/app.rb に置くと、起動したときに自動で実行される。
-# 土壌湿度計の値を読み、60 秒ごとに Thread（UDP）で Raspberry Pi 5 に送る。
+# 植物の側の ISP1807 Dev Board（R2P2-nRF の Thread 版）で動かす
+# /home/app.rb に置くと、起動したときに自動で実行される
+# 土壌湿度計の値を読み、60 秒ごとに Thread（UDP）で
+# Raspberry Pi 5 に送る
 require "adc"
 
-# Raspberry Pi 5 で raspberrypi/form-network.sh を実行して表示された値に置き換える
+# Raspberry Pi 5 で raspberrypi/form-network.sh を実行して
+# 表示された 2 つの値に置き換える
 DATASET = "ここに dataset active -x の値を貼る"
 DEST = "ここに Raspberry Pi 5 の ML-EID を貼る"
 PORT = 50000
 INTERVAL = 60
 
-# センサーの電圧の目安（例）。自分のセンサーで測った値に置き換える
+# センサーの電圧の目安（例）
+# 自分のセンサーで測った値に置き換える
 DRY_V = 2.6
 WET_V = 1.1
 
@@ -53,7 +56,8 @@ while true
     status = "wet"
   end
 
-  msg = "moisture=#{moisture_pct.to_i} volt=#{volt} raw=#{raw} status=#{status}"
+  msg = "moisture=#{moisture_pct.to_i} volt=#{volt}"
+  msg << " raw=#{raw} status=#{status}"
   puts msg
   begin
     udp.send(msg, 0, DEST, PORT)
